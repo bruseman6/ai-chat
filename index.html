@@ -2,27 +2,27 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="ไอรา AI">
     <title>ไอรา AI</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: sans-serif; background: #f0f0f0; height: 100vh; display: flex; flex-direction: column; }
         #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
         .msg { max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.5; }
         .user { background: #007aff; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
         .ai { background: white; color: black; align-self: flex-start; border-bottom-left-radius: 4px; }
         #input-area { display: flex; padding: 12px; background: white; gap: 8px; border-top: 1px solid #ddd; }
-        #input { flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid #ddd; font-size: 15px; outline: none; }
-        #send { background: #007aff; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 18px; cursor: pointer; }
+        #input { flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid #ddd; font-size: 16px; outline: none; -webkit-appearance: none; appearance: none; background: white; color: black; }
+        #send { background: #007aff; color: white; border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 20px; cursor: pointer; -webkit-appearance: none; flex-shrink: 0; }
     </style>
 </head>
 <body>
-    <div id="chat-box"></div>
+    <div id="chat-box"><div class="msg ai">สวัสดีครับ! ผมไอรา มีอะไรให้ช่วยมั้ยครับ?</div></div>
     <div id="input-area">
-        <textarea id="input" placeholder="พิมพ์ข้อความ..." rows="1" style="resize:none; overflow:hidden;"></textarea>
-        <button id="send">↑</button>
+        <input id="input" type="text" placeholder="พิมพ์ข้อความ..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+        <button id="send" type="button">↑</button>
     </div>
     <script>
         const chatBox = document.getElementById('chat-box');
@@ -32,7 +32,7 @@
 
         function addMsg(text, role) {
             const div = document.createElement('div');
-            div.className = `msg ${role === 'user' ? 'user' : 'ai'}`;
+            div.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
             div.textContent = text;
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
@@ -44,22 +44,31 @@
             input.value = '';
             addMsg(msg, 'user');
             history.push({ role: 'user', content: msg });
-
             addMsg('กำลังคิด...', 'ai');
-
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: msg, history })
-            });
-            const data = await res.json();
-
-            chatBox.lastChild.textContent = data.response;
-            history.push({ role: 'assistant', content: data.response });
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: msg, history })
+                });
+                const data = await res.json();
+                chatBox.lastChild.textContent = data.response;
+                history.push({ role: 'assistant', content: data.response });
+            } catch(e) {
+                chatBox.lastChild.textContent = '⚠️ เกิดข้อผิดพลาด กรุณาลองใหม่';
+            }
         }
 
-        sendBtn.onclick = sendMessage;
-        input.onkeydown = e => e.key === 'Enter' && sendMessage();
+        sendBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            sendMessage();
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') sendMessage();
+        });
     </script>
 </body>
 </html>
