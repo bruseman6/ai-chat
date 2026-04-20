@@ -20,28 +20,45 @@
         #input::placeholder { color: rgba(255,255,255,0.5); }
         #send { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 20px; cursor: pointer; flex-shrink: 0; }
         #clear { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+
         #loader {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    z-index: 9999; color: white;
-}
-#loader-img { font-size: 80px; animation: bounce 0.8s infinite alternate; margin-bottom: 20px; }
-@keyframes bounce { from { transform: scale(1); } to { transform: scale(1.2); } }
-#loader-title { font-size: 28px; font-weight: bold; margin-bottom: 30px; }
-#loader-bar-bg { width: 200px; height: 6px; background: rgba(255,255,255,0.2); border-radius: 10px; margin-bottom: 12px; }
-#loader-bar { height: 6px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; width: 0%; transition: width 0.1s; }
-#loader-percent { font-size: 18px; font-weight: bold; color: #667eea; }
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0a0a1a, #0d1b3e, #0a2a4a);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999; color: white; overflow: hidden;
+        }
+        canvas#stars { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        #loader-content { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; }
+        #loader-title {
+            font-size: 48px; font-weight: 900; letter-spacing: 8px;
+            background: linear-gradient(135deg, #00d2ff, #7b2ff7, #ff6eb4);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            margin-bottom: 8px; text-transform: uppercase;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        #loader-subtitle { font-size: 14px; color: rgba(255,255,255,0.5); letter-spacing: 4px; margin-bottom: 40px; }
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 10px #00d2ff); }
+            to { filter: drop-shadow(0 0 25px #7b2ff7); }
+        }
+        #loader-bar-bg { width: 250px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 12px; }
+        #loader-bar { height: 4px; background: linear-gradient(90deg, #00d2ff, #7b2ff7, #ff6eb4); border-radius: 10px; width: 0%; transition: width 0.15s; box-shadow: 0 0 10px #7b2ff7; }
+        #loader-percent { font-size: 16px; font-weight: bold; color: #00d2ff; letter-spacing: 2px; }
     </style>
 </head>
-<body><div id="loader">
-    <div id="loader-img">🤖</div>
-    <div id="loader-title">ไอรา AI</div>
-    <div id="loader-bar-bg"><div id="loader-bar"></div></div>
-    <div id="loader-percent">0%</div>
+<body>
+<div id="loader">
+    <canvas id="stars"></canvas>
+    <div id="loader-content">
+        <div id="loader-title">DOWNLOAD</div>
+        <div id="loader-subtitle">ไอรา AI • กำลังโหลด</div>
+        <div id="loader-bar-bg"><div id="loader-bar"></div></div>
+        <div id="loader-percent">0%</div>
+    </div>
 </div>
+
     <div id="header">
-         ไอรา AI
+        ไอรา AI
         <button id="clear" style="float:right;margin-top:-2px;">ล้างประวัติ</button>
     </div>
     <div id="chat-box"></div>
@@ -50,17 +67,49 @@
         <button id="send" type="button">↑</button>
     </div>
     <script>
+        const canvas = document.getElementById('stars');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const meteors = [];
+        for (let i = 0; i < 60; i++) {
+            meteors.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                len: Math.random() * 80 + 20,
+                speed: Math.random() * 4 + 2,
+                opacity: Math.random()
+            });
+        }
+        function drawMeteors() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            meteors.forEach(m => {
+                ctx.beginPath();
+                ctx.moveTo(m.x, m.y);
+                ctx.lineTo(m.x - m.len, m.y - m.len * 0.5);
+                const grad = ctx.createLinearGradient(m.x, m.y, m.x - m.len, m.y - m.len * 0.5);
+                grad.addColorStop(0, `rgba(0, 210, 255, ${m.opacity})`);
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.strokeStyle = grad;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                m.x += m.speed;
+                m.y += m.speed * 0.5;
+                if (m.x > canvas.width || m.y > canvas.height) {
+                    m.x = Math.random() * canvas.width * 0.5;
+                    m.y = Math.random() * canvas.height * 0.5;
+                }
+            });
+            requestAnimationFrame(drawMeteors);
+        }
+        drawMeteors();
+
         const chatBox = document.getElementById('chat-box');
         const input = document.getElementById('input');
         const sendBtn = document.getElementById('send');
         const clearBtn = document.getElementById('clear');
-
         let history = JSON.parse(localStorage.getItem('chat_history') || '[]');
-
-        function saveHistory() {
-            localStorage.setItem('chat_history', JSON.stringify(history.slice(-50)));
-        }
-
+        function saveHistory() { localStorage.setItem('chat_history', JSON.stringify(history.slice(-50))); }
         function addMsg(text, role) {
             const div = document.createElement('div');
             div.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
@@ -68,12 +117,10 @@
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
-
         function loadHistory() {
             history.forEach(msg => addMsg(msg.content, msg.role === 'user' ? 'user' : 'ai'));
             if (history.length === 0) addMsg('สวัสดีค่ะ! หนูไอรา มีอะไรให้ช่วยมั้ยคะ?', 'ai');
         }
-
         clearBtn.addEventListener('click', () => {
             if (confirm('ล้างประวัติทั้งหมด?')) {
                 history = [];
@@ -82,7 +129,6 @@
                 addMsg('สวัสดีค่ะ! หนูไอรา มีอะไรให้ช่วยมั้ยคะ?', 'ai');
             }
         });
-
         async function sendMessage() {
             const msg = input.value.trim();
             if (!msg) return;
@@ -105,34 +151,32 @@
                 chatBox.lastChild.textContent = '⚠️ เกิดข้อผิดพลาด กรุณาลองใหม่';
             }
         }
-
         sendBtn.addEventListener('touchend', function(e) { e.preventDefault(); sendMessage(); });
         sendBtn.addEventListener('click', sendMessage);
         input.addEventListener('keydown', function(e) { if (e.key === 'Enter') sendMessage(); });
-
         loadHistory();
+
         const loader = document.getElementById('loader');
-const bar = document.getElementById('loader-bar');
-const percent = document.getElementById('loader-percent');
-let progress = 0;
-const interval = setInterval(() => {
-    progress += Math.random() * 15 + 5;
-    if (progress >= 100) {
-        progress = 100;
-        bar.style.width = '100%';
-        percent.textContent = '100%';
-        clearInterval(interval);
-        setTimeout(() => {
-            loader.style.opacity = '0';
-            loader.style.transition = 'opacity 0.5s';
-            setTimeout(() => loader.style.display = 'none', 500);
-        }, 500);
-    } else {
-        bar.style.width = progress + '%';
-        percent.textContent = Math.floor(progress) + '%';
-    }
-}, 200);
+        const bar = document.getElementById('loader-bar');
+        const percent = document.getElementById('loader-percent');
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 8 + 3;
+            if (progress >= 100) {
+                progress = 100;
+                bar.style.width = '100%';
+                percent.textContent = '100%';
+                clearInterval(interval);
+                setTimeout(() => {
+                    loader.style.opacity = '0';
+                    loader.style.transition = 'opacity 0.8s';
+                    setTimeout(() => loader.style.display = 'none', 800);
+                }, 600);
+            } else {
+                bar.style.width = progress + '%';
+                percent.textContent = Math.floor(progress) + '%';
+            }
+        }, 150);
     </script>
 </body>
 </html>
-
